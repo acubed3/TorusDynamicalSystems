@@ -8,6 +8,13 @@ function phase_lock_areas!(omega)
 
 	@show(omega)
 
+	function RSJ_Mobius!(du, u, p, t)
+		omega, A, B = p
+		du[1] = -1/2*(conj(u[2])-u[2]*u[1]^2)+1im*(B+A*cos(omega*t))*u[1]
+		du[2] = -1/2*(1-abs(u[2])^2)*conj(u[1])
+		nothing
+	end
+
 	function lyapunov_exp!(omega, A, B)
 		u0 = [exp(1im*0), 0.0]
 		t0 = 2*pi/omega
