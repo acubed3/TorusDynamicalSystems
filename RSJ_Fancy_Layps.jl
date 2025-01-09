@@ -54,7 +54,7 @@ function phase_lock_areas!(omega)
 	A_size = length(A_values);
 	B_size = length(B_values);
 
-	ratios = zeros(B_size, A_size);
+	layp_exps = zeros(B_size, A_size);
 
 	@showprogress Threads.@threads for i=1:B_size  
 		for j=1:A_size
