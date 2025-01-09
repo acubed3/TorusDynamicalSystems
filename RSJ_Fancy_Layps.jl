@@ -66,7 +66,7 @@ function phase_lock_areas!(omega)
 	name_pattern = replace(name_pattern, "." => "_")
 	name = join([name_pattern, ".csv"])
 
-	writedlm(name,  wm_values, ',')
+	writedlm(name,  layp_exps, ',')
 	
 end
 
