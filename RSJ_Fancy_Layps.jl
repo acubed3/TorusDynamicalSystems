@@ -8,44 +8,39 @@ function phase_lock_areas!(omega)
 
 	@show(omega)
 
-	function RSJ_Mobius!(du, u, p, t)
-		omega, A, B = p
-		du[1] = -1/2*(conj(u[2])-u[2]*u[1]^2)+1im*(B+A*cos(omega*t))*u[1]
-		du[2] = -1/2*(1-abs(u[2])^2)*conj(u[1])
-		nothing
-	end
-	
-	function lyapunov_exp!(omega, A, B, t0)
-	
-		u0 = [exp(1im*rand()), 0.2*rand()];
+	function lyapunov_exp!(omega, A, B)
+		u0 = [exp(1im*0), 0.0]
+		t0 = 2*pi/omega
 		tspan = (0., t0)
 		p = (omega, A, B)
 
 
-		prob = ODEProblem(RSJ_Mobius!, u0, tspan, p, abstol=1e-10, reltol=1e-10)
+		prob = ODEProblem(RSJ_Mobius!, u0, tspan, p, abstol=1e-10)
 		sol = solve(prob)
 		
-		w_final = last(sol.u)[2]
-		if abs(w_final) < 1.0
-			ratio = (1+abs(w_final))/(1-abs(w_final))
-		else
-			ratio = (1+abs(w_final-1e-6))/(1-abs(w_final-1e-6))
-		end 
+		w = last(sol.u)[2]
+		zeta = last(sol.u)[1]
 		
-		return ratio
+		lambda2 = (1+zeta+sqrt((1-zeta)^2+4*zeta*abs(w)^2))
+		lambda1 = (1+zeta-sqrt((1-zeta)^2+4*zeta*abs(w)^2))
+		
+		if abs(lambda1) > 0.0
+			layp_exp = log(abs(lambda2/lambda1))
+		else
+			layp_exp = log(abs(lambda2/(lambda1+1e-8)))
+		end 
+		return layp_exp
 	end
-	
-	t0 = 100;
 
-	A_min = -2.0;
-	A_max = +8.0;
-	A_step = 0.005;
+	A_min = -4.0;
+	A_max = 0.0;
+	A_step = 0.001;
 
 	A_values = range(A_min, A_max, step=A_step) |> collect;
 
-	B_min = -2.0;
-	B_max = 2.0;
-	B_step = 0.005;
+	B_min = -4.0;
+	B_max = 0.0;
+	B_step = 0.001;
 
 	B_values = range(B_min, B_max, step=B_step) |> collect;
 
@@ -56,11 +51,11 @@ function phase_lock_areas!(omega)
 
 	@showprogress Threads.@threads for i=1:B_size  
 		for j=1:A_size
-			ratios[i,j] = lyapunov_exp!(omega, A_values[j], B_values[i], t0)
+			layp_exps[i,j] = lyapunov_exp!(omega, A_values[j], B_values[i])
 		end
 	end
 
-	name_pattern = join(["ph_FancyLyaps_omega_", string(omega)])
+	name_pattern = join(["RSJ_LaypsChart_omega_", string(omega)])
 	name_pattern = replace(name_pattern, "." => "_")
 	name = join([name_pattern, ".csv"])
 
