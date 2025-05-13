@@ -15,30 +15,32 @@ function phase_lock_areas!(omega)
 		nothing
 	end
 	
-	function lyapunov_exp!(omega, A, B, t0)
-	
-		u0 = [exp(1im*rand()), 0.2*rand()];
+	function lyapunov_exp!(omega, A, B)
+		u0 = [exp(1im*0), 0.0]
+		t0 = 2*pi/omega
 		tspan = (0., t0)
 		p = (omega, A, B)
 
 
-		prob = ODEProblem(Mathieu_Mobius!, u0, tspan, p, abstol=1e-10, reltol=1e-10)
+		prob = ODEProblem(Mathieu_Mobius!, u0, tspan, p, abstol=1e-10)
 		sol = solve(prob)
 		
-		w_final = last(sol.u)[2]
-		if abs(w_final) < 1.0
-			ratio = (1+abs(w_final))/(1-abs(w_final))
-		else
-			ratio = (1+abs(w_final)+1e-6)/(1-abs(w_final)-1e-6)
-		end 
+		w = last(sol.u)[2]
+		zeta = last(sol.u)[1]
 		
-		return ratio
+		lambda2 = (1+zeta+sqrt((1-zeta)^2+4*zeta*abs(w)^2))
+		lambda1 = (1+zeta-sqrt((1-zeta)^2+4*zeta*abs(w)^2))
+		
+		if abs(lambda1) > 0.0
+			layp_exp = log(abs(lambda2/lambda1))
+		else
+			layp_exp = log(abs(lambda2/(lambda1+1e-8)))
+		end 
+		return layp_exp
 	end
-	
-	t0 = 100;
 
 	A_min = -4.0;
-	A_max = +4.0;
+	A_max = 0.0;
 	A_step = 0.005;
 
 	A_values = range(A_min, A_max, step=A_step) |> collect;
@@ -52,19 +54,19 @@ function phase_lock_areas!(omega)
 	A_size = length(A_values);
 	B_size = length(B_values);
 
-	ratios = zeros(B_size, A_size);
+	layp_exps = zeros(B_size, A_size);
 
 	@showprogress Threads.@threads for i=1:B_size  
 		for j=1:A_size
-			ratios[i,j] = lyapunov_exp!(omega, A_values[j], B_values[i], t0)
+			layp_exps[i,j] = lyapunov_exp!(omega, A_values[j], B_values[i])
 		end
 	end
 
-	name_pattern = join(["ph_Mathieu_FancyLyaps_omega_", string(omega)])
+	name_pattern = join(["Mathieu_FancyLyaps_omega_", string(omega), "_step_", string(A_step)])
 	name_pattern = replace(name_pattern, "." => "_")
 	name = join([name_pattern, ".csv"])
 
-	writedlm(name,  ratios, ',')
+	writedlm(name,  layp_exps, ',')
 	
 end
 
